@@ -1,4 +1,4 @@
-let tasks = [
+const tasks = [
   { id: 1, completed: false, text: "Посмотреть новый урок по JavaScript" },
   { id: 2, completed: false, text: "Выполнить тест после урока" },
   { id: 3, completed: false, text: "Выполнить ДЗ после урока" },
@@ -37,8 +37,6 @@ confirmButton.className = "delete-modal__button";
 confirmButton.classList.add("delete-modal__confirm-button");
 confirmButton.innerText = "Удалить";
 deleteModalButtons.append(confirmButton);
-
-//
 
 let tasksList;
 
@@ -176,64 +174,34 @@ let currentModalTargetId;
 // ð Н: мне нравится, что ты везде добавляешь проверки, это крайне полезно
 if (tasksList) {
   tasksList.addEventListener("click", (event) => {
-    //
     let { target } = event;
-    // console.log("target", target);
 
     const delButton = target.closest(".delete-button");
 
     currentModalTargetId = target.dataset.deleteTaskId;
     let delAction = false;
 
-    //
-
     if (delButton) {
       console.log("Вызов модального оуна с удалением / delButton", delButton);
       modalOverlay.classList.remove("modal-overlay_hidden");
-
-      // yourChoice(delId);
     }
-
-    //
-
-    // let yourChoice = (id) => {
-    //
-
-    //
-    // };
-
-    // yourChoice(delId);
-
-    if (delAction === true) {
-      //
-    }
-    //
-
-    // console.log("target.dataset.deleteTaskId", target.dataset.deleteTaskId);
   });
 }
 
 // ð Н: Я вынесла эти два обработчика на уровень выше
 if (cancelButton) {
   cancelButton.addEventListener("click", () => {
-    // console.log("Нажата кнопка Отмена / cancelButton", cancelButton);
-
     currentModalTargetId = null;
     modalOverlay.classList.add("modal-overlay_hidden");
     return;
   });
 }
 
-//
-
 if (confirmButton) {
   confirmButton.addEventListener("click", () => {
-    // console.log("Нажата кнопка Удалить / confirmButton", confirmButton);
-
-    const targetItem = document.querySelector(`.task-item[data-task-id="${currentModalTargetId}"]`);
-    console.log("targetItem", targetItem);
-
-    // delAction = true;
+    const targetItem = document.querySelector(
+      `.task-item[data-task-id="${currentModalTargetId}"]`
+    );
 
     targetItem.remove();
 
@@ -251,19 +219,6 @@ if (confirmButton) {
     // только для объектов
     delete tasks[delId];
 
-    // tasks = tasks.filter((n) => n);
-
-    // tasks.forEach((element) => {
-    //   if (!element) {
-    //     console.log(index);
-    //     task.splice(index, 1);
-    //   }
-    // });
-
-    //
-
     modalOverlay.classList.add("modal-overlay_hidden");
   });
 }
-
-// как удалить из массива спустые строки? без let у массива
