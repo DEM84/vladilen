@@ -277,13 +277,3 @@ body {
   background-color: var(--delete-button-background);
   border: 1px solid var(--delete-button-background);
 }
-
-.dark-theme_body {
-  background-color: #24292e;
-}
-.dark-theme_task {
-  color: #fff;
-}
-.dark-theme_button {
-  border: 1px solid #ffffff;
-}
