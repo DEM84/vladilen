@@ -7,6 +7,7 @@ const getTodosByIds = async (ids) => {
 
   try {
     const requests = await ids.map((id) => fetch(`${TODOS_URL}/${id}`));
+
     console.log("requests:", requests);
 
     // if (!requests.ok) {
