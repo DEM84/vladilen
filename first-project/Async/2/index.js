@@ -5,20 +5,23 @@ const getTodosByIds = async (ids) => {
 
   try {
     const requests = await ids.map((id) => fetch(`${TODOS_URL}/${id}`));
+    console.log("requests:", requests);
 
     // if (!requests.ok) {
     //   throw new Error("Ошибка в получении данных");
     // }
 
     let results = await Promise.all(requests);
+    console.log("results:", results);
 
-    const dataResults = await requests.map((data) => {
+    let dataResults = results.map((data) => {
+      console.log("data", data);
       return data.json();
     });
 
-    console.log("requests:", requests);
-    console.log("results:", results);
-    console.log("allTasks = dataResults", dataResults);
+    console.log("dataResults:", dataResults);
+
+    //
   } catch (error) {
     console.error("error таков:", error);
   }
