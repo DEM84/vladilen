@@ -1,33 +1,24 @@
 const TODOS_URL = "https://jsonplaceholder.typicode.com/todos";
 
 const getTodosByIds = async (ids) => {
-  console.log(ids);
+  // console.log(ids);
 
   try {
     const requests = await ids.map((id) => fetch(`${TODOS_URL}/${id}`));
-
-    console.log("requests:", requests);
 
     // if (!requests.ok) {
     //   throw new Error("Ошибка в получении данных");
     // }
 
-    let result = await Promise.all(requests);
+    let results = await Promise.all(requests);
 
-    console.log("result:", result);
+    const dataResults = await requests.map((data) => {
+      return data.json();
+    });
 
-    const dataResults = await result.map((data) => data.json());
-
-    return dataResults;
-
-    // .then((responses) => {
-    //   const dataResults = responses.map((data) => data.json());
-    //   return Promise.all(dataResults);
-    // })
-
-    // .then((allTasks) => {
-    //   console.log("allTasks", allTasks);
-    // });
+    console.log("requests:", requests);
+    console.log("results:", results);
+    console.log("allTasks = dataResults", dataResults);
   } catch (error) {
     console.error("error таков:", error);
   }
@@ -45,7 +36,7 @@ const getTodosByIds0 = (ids) => {
       return Promise.all(dataResults);
     })
     .then((allTasks) => {
-      console.log("allTasks0", allTasks);
+      console.log("allTasks оригинал", allTasks);
     })
     .catch((error) => {
       console.log(error);
