@@ -1,0 +1,310 @@
+jQuery.widget( 'gc.testingWidget', {
+	options: {
+		questionaryId: null,
+		questionaryAnswerId: null,
+		objectTypeId: null,
+		objectId: null,
+		showRestartBtnAlways: false,
+		onFinish: null,
+		onQuestion: null,
+		scrollToQuestionary: false,
+		limitTimeAnswer: null
+	},
+	_create: function() {
+		var self = this;
+		this.element.addClass("testing-widget");
+		this.testingContent = this.element.find('.testing-content');
+		this.qData = {};
+		this.isLastQuestion = false;
+		this.qrid = null;
+		this.intervalAnswerTimer = -1;
+		self.initHtml();
+
+		//self.load();
+
+	},
+	load: function() {
+		var self = this;
+
+		var spinner = $('<span>')
+				.addClass('fa')
+				.addClass('fa-spin')
+				.addClass('fa-spinner'),
+			spinnerWrapper = $('<div>')
+				.css({'width':'1em','margin':'0 auto'});
+
+		spinnerWrapper.append( spinner );
+		this.testingContent.append( spinnerWrapper );
+		if ( this.isLastQuestion ) {
+			var title = "Preparing the results";
+			if (typeof Yii != 'undefined') {
+				title = Yii.t("common", title);
+			}
+			var loadingTitle = $('<div>')
+				.css({'text-align':'center'})
+				.html(title);
+			this.testingContent.append( loadingTitle );
+		}
+
+		ajaxCall( "/pl/teach/questionary-public/testing?id=" + this.options.questionaryId, this.options, {}, function( response ) {
+			self.testingContent.html( response.data.resultHtml );
+			/*
+			if ( response.data.resultHash ) {
+				self.qData = JSON.parse( window.atob( response.data.resultHash ) );
+			}
+			*/
+			self.isLastQuestion = response.data.isLastQuestion;
+			self.qrid = response.data.qrid;
+			self.initHtml();
+
+
+			var startBlock = self.testingContent.find('#startBlock').data('start-questionary-id');
+			//	Лимит времени на ответы
+			if(self.options.limitTimeAnswer && self.isLastQuestion === 0 && typeof startBlock === 'undefined'){
+
+				if(typeof self.intervalAnswerTimer !== 'undefined' && self.intervalAnswerTimer != -1){
+					clearInterval(self.intervalAnswerTimer);
+					self.intervalAnswerTimer = -1;
+					$("#answerTimer").remove();
+					$("#limitProgressBar").remove();
+				}
+
+				var limitTimeAnswer = $('<div id="answerTimer">')
+					.css({'text-align':'center'})
+					.html( "Время на ответ: " + self.options.limitTimeAnswer );
+
+				var limitProgressBar = $('<div id="limitProgressBar">')
+					.css({'width':'200px', 'background-color': '#ddd', 'margin': '0 auto', 'margin-top': '10px'});
+
+				var limitBar = $('<div id="limitBar">')
+					.css({'width':'200px', 'background-color': '#4CAF50', 'height': '5px'});
+
+				limitProgressBar.append( limitBar );
+
+				self.testingContent.append( limitTimeAnswer );
+
+				self.testingContent.append( limitProgressBar );
+
+				var n = self.options.limitTimeAnswer;
+				var w = 200/n;
+
+				self.intervalAnswerTimer  = setInterval(function () {
+					$('#answerTimer').html("Время на ответ: " + n);
+					self.testingContent.find('#limitBar').width( w * n );
+					n--;
+					if (n < 0) {
+						clearInterval(self.intervalAnswerTimer);
+						self.intervalAnswerTimer = -1;
+						$("#answerTimer").remove();
+						$("#limitProgressBar").remove();
+
+						self.testingContent.find('.btn-send-variant').attr('disabled', true);
+						var questionId = self.testingContent.find('.btn-send-variant').data('question-id');
+
+						var params = {
+							questionaryId: self.questionaryId,
+							questionaryAnswerId: self.questionaryAnswerId,
+							questionId: questionId,
+							objectTypeId: self.options.objectTypeId,
+							objectId: self.options.objectId,
+							answerTimeEnd: 1
+						};
+
+						ajaxCall("/pl/teach/questionary-public/do-question-answer", params, {}, function (response) {
+							self.showResult(response);
+						});
+					}
+				}, 1000);
+			}
+		} );
+
+	},
+	showResult: function( response ) {
+		console.log(response);
+		var self = this;
+
+		if (response.data.questionaryAnswerId) {
+			self.options.questionaryAnswerId = response.data.questionaryAnswerId;
+		}
+
+		this.testingContent.find('.js__btn-variant').attr('disabled', true);
+		if ( response.data.answerStatuses ) {
+			for ( var value in response.data.answerStatuses ) {
+				this.testingContent.find('.js__btn-variant').each( function( index, el ) {
+					if ( $(el).data('value') == value ) {
+						$(el).addClass("btn-" + response.data.answerStatuses[value] );
+						if( response.data.variantComments[value] ) {
+							var comment = $('<div>')
+								.addClass( response.data.answerStatuses[value] )
+								.html( response.data.variantComments[value] );
+							$(el).after( comment );
+						}
+					}
+				});
+			}
+		}
+
+		if ( response.data.answerResult ) {
+			var $div = $( '<div class="answer-result"><h3 class="answer-header"></h3><div class="answer-text"></div></div>' );
+			$div.find('.answer-text').html( response.data.answerResult.text );
+			$div.appendTo( self.testingContent.find('.question-answer-block .button-list') );
+		}
+
+		if ( response.data.showResultSeconds > 0 ) {
+			setTimeout( function() {
+				if ( self.isLastQuestion && self.qrid && $('.gc-share-links').length > 0 ) {
+					window.location.href = window.location.href + ( window.location.search ? '&' : '?' ) + 'qrid=' + self.qrid;
+				} else {
+					self.load();
+				}
+			}, response.data.showResultSeconds * 1000 );
+		}
+		else {
+			var $btnNext = $("<button type='button' class='btn btn-primary btn-default btn-next-question'> <span class='fa fa-angle-double-right'></span> " + ( window.language == "en" ? "Next question" : "Следующий вопрос" ) + "</button>");
+			if ( self.isLastQuestion ) {
+				$btnNext.html("<span class='fa fa-check'></span> " + ( window.language == "en" ? "Results" : "Результаты" ) );
+			}
+			$btnNext.appendTo(self.testingContent.find('.question-answer-block .button-list'));
+			$btnNext.click(function () {
+				$(this).prop('disabled', true);
+				if ( self.isLastQuestion && self.qrid && $('.gc-share-links').length > 0 ) {
+					window.location.href = window.location.href + ( window.location.search ? '&' : '?' ) + 'qrid=' + self.qrid;
+				} else {
+					self.load();
+				}
+			});
+		}
+	},
+	initHtml: function() {
+		var self = this;
+
+		if ( this.options.scrollToQuestionary && $('.editor-control-panel').length === 0 ) {
+			var top = self.testingContent.offset().top;
+			if ( top ) {
+				$(window).scrollTop( top );
+			}
+		}
+
+		this.testingContent.find('.btn-mark-variant').on('click', function(e) {
+			e.preventDefault();
+			var value = $(this).data('value');
+			var questionId = $(this).data('question-id');
+			var sendAnswerButton = self.testingContent.find('.btn-send-variant');
+			var answer = [];
+
+			if (!questionId) {
+				alert(window.language == "en" ? "Question not set" : "Не указан вопрос");
+				return;
+			}
+
+			$(this).attr('data-marked', ($(this).attr('data-marked') == '1' ? '0' : '1'));
+
+			var variants = self.testingContent.find('.btn-mark-variant[data-marked="1"]');
+
+			variants.each(function (i, item){
+				answer.push($(item).attr('data-value'));
+			});
+
+			if (variants.length > 0) {
+				sendAnswerButton.show();
+			} else {
+				sendAnswerButton.hide();
+			}
+
+			sendAnswerButton.attr('data-value', JSON.stringify(answer));
+		});
+
+		this.testingContent.find('.btn-send-variant').on('click', function(e) {
+			e.preventDefault();
+			$(this).closest('.button-list').find('.btn-send-variant').off('click');
+			var value = $(this).data('value');
+			var questionId = $(this).data('question-id');
+
+			if (!questionId) {
+				alert(window.language == "en" ? "Question not set" : "Не указан вопрос");
+				return;
+			}
+
+			$(this).attr('disabled', true);
+			$("#answerTimer").remove();
+			$("#limitProgressBar").remove();
+			clearInterval(self.intervalAnswerTimer);
+			self.intervalAnswerTimer = -1;
+
+			var params = {
+				questionaryId: self.questionaryId,
+				questionaryAnswerId: self.questionaryAnswerId,
+				questionId: questionId,
+				objectTypeId: self.options.objectTypeId,
+				objectId: self.options.objectId,
+				answerValue: value
+			};
+
+			ajaxCall("/pl/teach/questionary-public/do-question-answer", params, {}, function (response) {
+				self.showResult(response);
+			});
+
+		});
+
+		this.testingContent.find('.btn-restart').on('click', function(e) {
+
+			e.preventDefault();
+			$(this).attr('disabled', true);
+
+			var questionaryAnswerId = $(this).data('questionary-answer-id');
+			var questionaryId = $(this).data('questionary-id');
+
+			if (!questionaryId) {
+				alert(window.language == 'en' ? 'Error' : 'Ошибка');
+				return;
+			}
+
+			var isStart = $(this).hasClass('start-btn') ? '1' : '0';
+
+			//TODO: тексты заменить на Yii.t
+			var questionlLabel = 'Do you really want to start the test again?';
+			if (typeof Yii != 'undefined') {
+				questionlLabel = Yii.t("common", questionlLabel);
+			}
+			if (isStart === '0' && !confirm(questionlLabel)) {
+				$(this).attr('disabled', false);
+				return false;
+			}
+
+			if (isStart === '0') {
+				self.options.questionaryAnswerId = null;
+			}
+
+			ajaxCall( "/pl/teach/questionary-public/restart?id=" + questionaryId + "&start=" + isStart, {
+				objectTypeId: self.options.objectTypeId,
+				objectId: self.options.objectId
+			}, {}, function( response ) {
+				if (response.data.answerId) {
+					self.questionaryAnswerId = response.data.answerId;
+				}
+				if ( window.location.search.indexOf('qrid=') >= 0 ) {
+					var sourceURL = window.location.href;
+					var rtn = sourceURL.split("?")[0],
+						param,
+						params_arr = [],
+						queryString = (sourceURL.indexOf("?") !== -1) ? sourceURL.split("?")[1] : "";
+					if (queryString !== "") {
+						params_arr = queryString.split("&");
+						for (var i = params_arr.length - 1; i >= 0; i -= 1) {
+							param = params_arr[i].split("=")[0];
+							if (param === 'qrid') {
+								params_arr.splice(i, 1);
+							}
+						}
+						if ( params_arr.length ) {
+							rtn = rtn + "?" + params_arr.join("&");
+						}
+					}
+					window.location.href = rtn;
+				} else {
+					self.load();
+				}
+			} );
+		});
+	}
+});
