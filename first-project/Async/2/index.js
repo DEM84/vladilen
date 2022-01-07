@@ -1,5 +1,7 @@
 const TODOS_URL = "https://jsonplaceholder.typicode.com/todos";
 
+// Это моя сраная версия
+
 const getTodosByIds = async (ids) => {
   // console.log(ids);
 
@@ -29,7 +31,7 @@ const getTodosByIds = async (ids) => {
 
 getTodosByIds([43, 21, 55, 100, 10]);
 
-//
+// Это сраная оригинальная версия
 
 const getTodosByIds0 = (ids) => {
   const requests = ids.map((id) => fetch(`${TODOS_URL}/${id}`));
