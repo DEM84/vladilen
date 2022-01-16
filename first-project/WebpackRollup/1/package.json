@@ -1,0 +1,13 @@
+{
+  "name": "home1",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "rollup -c",
+    "start": "rollup -c -w"
+  },
+  "keywords": [],
+  "author": "DEM84",
+  "license": "ISC",
+  "description": ""
+}
